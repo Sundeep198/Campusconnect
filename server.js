@@ -69,6 +69,11 @@ app.get('/students', async (req, res) => {
     }
 });
 
+app.get('/staffs/list', async (req,res)=>{
+const [rows]=await db.query("SELECT staffID,staffName FROM staffs")
+res.json(rows)
+})
+
 app.get('/staff/location', async (req,res)=>{
 
 try{
@@ -217,11 +222,11 @@ app.post('/subjects/delete', async (req,res)=>{
 
 try{
 
-const {id} = req.body;
+const {subjectID} = req.body;
 
 await db.query(
-"DELETE FROM subjects WHERE id=?",
-[id]
+"DELETE FROM subjects WHERE subjectID=?",
+[subjectID]
 );
 
 res.json({success:true});
@@ -413,6 +418,23 @@ res.json(rows[0]);
 
 });
 
+app.post('/staffs/add', async (req,res)=>{
+try{
+
+const {staffID,staffName,designation,username,password}=req.body
+
+await db.query(
+"INSERT INTO staffs(staffID,staffName,designation,username,password) VALUES(?,?,?,?,?)",
+[staffID,staffName,designation,username,password]
+)
+
+res.json({success:true})
+
+}catch(err){
+res.status(500).json({success:false,error:err.message})
+}
+})
+
 app.get('/subjects', async (req,res)=>{
 
 try{
@@ -441,14 +463,14 @@ let workbook = new ExcelJS.Workbook();
 let sheet = workbook.addWorksheet("MarksEntry");
 
 // Get students
-let [students] = await db.query("SELECT id,name FROM students");
+let [students] = await db.query("SELECT studentID,studentName FROM students");
 
 // Get all subjects from marks table
-let [subjectRows] = await db.query("SELECT DISTINCT subject FROM marks");
+let [subjectRows] = await db.query("SELECT subjectID FROM subjects");
 let subjects = subjectRows.map(r=>r.subject);
 
 // Get all marks
-let [marks] = await db.query("SELECT studentID,subject,marks FROM marks");
+let [marks] = await db.query("SELECT studentID,subjectID,marks FROM marks");
 
 sheet.columns = [
 {header:"Student Name", key:"name", width:20},
@@ -461,13 +483,13 @@ students.forEach(student=>{
 subjects.forEach(subject=>{
 
 let existing = marks.find(m=>
-m.studentID === student.id &&
+m.studentID === student.studentID &&
 m.subject === subject
 );
 
 sheet.addRow({
-name: student.name,
-id: student.id,
+name: student.studentName,
+id: student.studentID,
 subject: subject,
 marks: existing ? existing.marks : ""
 });
@@ -501,7 +523,7 @@ return res.status(400).send("Staff required");
 
 // Subjects handled by staff
 let [subjectRows] = await db.query(
-"SELECT DISTINCT subject FROM marks WHERE staffName=?",
+"SELECT subjectID FROM subjects WHERE staffName=?",
 [staffName]
 );
 
@@ -512,7 +534,7 @@ let [students] = await db.query("SELECT id,name FROM students");
 
 // Marks of that staff
 let [marks] = await db.query(
-"SELECT studentID,subject,marks FROM marks WHERE staffName=?",
+"SELECT studentID,subjectID,marks FROM marks WHERE staffName=?",
 [staffName]
 );
 
@@ -530,13 +552,13 @@ students.forEach(student=>{
 subjects.forEach(subject=>{
 
 let existing = marks.find(m=>
-m.studentID === student.id &&
+m.studentID === student.studentID &&
 m.subject === subject
 );
 
 sheet.addRow({
-name: student.name,
-id: student.id,
+name: student.studentName,
+id: student.studentID,
 subject: subject,
 marks: existing ? existing.marks : ""
 });
@@ -593,14 +615,14 @@ continue;
 }
 
 const [existing] = await db.query(
-"SELECT * FROM marks WHERE studentID=? AND subject=? AND staffName=?",
+"SELECT * FROM marks WHERE studentID=? AND subjectID=? AND staffID=?",
 [id, subject, staffName]
 );
 
 if(existing.length > 0){
 
 await db.query(
-"UPDATE marks SET marks=? WHERE studentID=? AND subject=? AND staffName=?",
+"UPDATE marks SET marks=? WHERE studentID=? AND subjectID=? AND staffID=?",
 [marks, id, subject, staffName]
 );
 
@@ -653,14 +675,14 @@ continue;
 }
 
 const [existing] = await db.query(
-"SELECT * FROM marks WHERE studentID=? AND subject=? AND staffName=?",
+"SELECT * FROM marks WHERE studentID=? AND subjectID=? AND staffID=?",
 [studentID,subject,staffName]
 );
 
 if(existing.length > 0){
 
 await db.query(
-"UPDATE marks SET marks=? WHERE studentID=? AND subject=? AND staffName=?",
+"UPDATE marks SET marks=? WHERE studentID=? AND subjectID=? AND staffID=?",
 [marks,studentID,subject,staffName]
 );
 
