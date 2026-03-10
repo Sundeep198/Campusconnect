@@ -211,14 +211,6 @@ res.json({success:true})
 }catch(err){
 res.status(500).json({success:false,error:err.message})
 }
-})
-
-res.json({success:true});
-
-}catch(err){
-res.status(500).json({success:false,error:err.message});
-}
-
 });
 
 app.post('/subjects/delete', async (req,res)=>{
