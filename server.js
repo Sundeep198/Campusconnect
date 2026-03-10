@@ -218,6 +218,23 @@ res.status(500).json({success:false,error:err.message})
 }
 });
 
+app.post('/subjects/update', async (req,res)=>{
+try{
+
+const {subjectID,subjectName,staffID} = req.body
+
+await db.query(
+"UPDATE subjects SET subjectName=?, staffID=? WHERE subjectID=?",
+[subjectName,staffID,subjectID]
+)
+
+res.json({success:true})
+
+}catch(err){
+res.status(500).json({success:false,error:err.message})
+}
+})
+
 app.post('/subjects/delete', async (req,res)=>{
 
 try{
@@ -426,6 +443,40 @@ const {staffID,staffName,designation,username,password}=req.body
 await db.query(
 "INSERT INTO staffs(staffID,staffName,designation,username,password) VALUES(?,?,?,?,?)",
 [staffID,staffName,designation,username,password]
+)
+
+res.json({success:true})
+
+}catch(err){
+res.status(500).json({success:false,error:err.message})
+}
+})
+
+app.post('/staff/update', async (req,res)=>{
+try{
+
+const {staffID,staffName,designation,username,password} = req.body
+
+await db.query(
+"UPDATE staffs SET staffName=?,designation=?,username=?,password=? WHERE staffID=?",
+[staffName,designation,username,password,staffID]
+)
+
+res.json({success:true})
+
+}catch(err){
+res.status(500).json({success:false,error:err.message})
+}
+})
+
+app.post('/staff/delete', async (req,res)=>{
+try{
+
+const {staffID} = req.body
+
+await db.query(
+"DELETE FROM staffs WHERE staffID=?",
+[staffID]
 )
 
 res.json({success:true})
