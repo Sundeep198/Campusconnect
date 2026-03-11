@@ -74,33 +74,6 @@ const [rows]=await db.query("SELECT staffID,staffName FROM staffs")
 res.json(rows)
 })
 
-app.get('/staff/location', async (req,res)=>{
-
-try{
-
-const [rows] = await db.query(`
-SELECT
-st.staffName,
-l.block,
-l.room,
-l.availability,
-l.date,
-l.startTime,
-l.endTime,
-l.duration
-FROM staff_loc l
-JOIN staffs st
-ON l.staffID = st.staffID
-`);
-
-res.json(rows);
-
-}catch(err){
-res.status(500).json({error:err.message});
-}
-
-});
-
 app.get('/campus', async (req,res)=>{
 
 try{
