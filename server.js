@@ -10,6 +10,12 @@ const XLSX = require("xlsx");
 const upload = multer({ storage: multer.memoryStorage() }); 
 const app = express();
 
+app.use((req,res,next)=>{
+res.header("Access-Control-Allow-Origin","*");
+res.header("Access-Control-Allow-Headers","Origin, X-Requested-With, Content-Type, Accept");
+next();
+});
+
 app.use(cors({
 origin:"*",
 methods:["GET","POST","PUT","DELETE"],
@@ -143,21 +149,28 @@ error:err.message
 
 });
 
-app.get('/staffs', async (req, res) => {
-  try {
+app.get('/staffs', async (req,res)=>{
 
-    const [rows] = await db.query(
-      "SELECT staffID,staffName,designation,username,password FROM staffs"
-    );
+const [rows] = await db.query(`
+SELECT 
+s.staffID,
+s.staffName,
+s.designation,
+s.username,
+s.password,
+l.block,
+l.room,
+l.availability,
+l.date,
+l.startTime,
+l.endTime
+FROM staffs s
+LEFT JOIN staff_loc l ON s.staffID=l.staffID
+`)
 
-    res.json(rows);
+res.json(rows)
 
-  } catch (err) {
-
-    res.status(500).json({error: err.message});
-
-  }
-});
+})
 
 app.get('/admin', async (req, res) => {
   try {
@@ -384,18 +397,26 @@ const {staffID,block,room,availability,date,startTime,endTime,duration}=req.body
 
 try{
 
-await db.query(`
-INSERT INTO staff_loc
+await db.query(
+`INSERT INTO staff_loc
 (staffID,block,room,availability,date,startTime,endTime,duration)
 VALUES (?,?,?,?,?,?,?,?)
-`,[staffID,block,room,availability,date,startTime,endTime,duration]);
+ON DUPLICATE KEY UPDATE
+block=VALUES(block),
+room=VALUES(room),
+availability=VALUES(availability),
+date=VALUES(date),
+startTime=VALUES(startTime),
+endTime=VALUES(endTime),
+duration=VALUES(duration)`,
+[staffID,block,room,availability,date,startTime,endTime,duration]
+);
 
 res.json({success:true});
 
-}
-catch(err){
-console.log(err);
-res.status(500).json({error:"DB error"});
+}catch(err){
+console.log(err)
+res.status(500).json({error:"DB error"})
 }
 
 });
@@ -627,58 +648,59 @@ res.end();
 
 app.post("/marks/bulkUploadJSON", async (req,res)=>{
 
-if(!req.body.data){
-return res.status(400).json({error:"No data provided"});
+const rows = req.body.data
+
+if(!rows){
+return res.status(400).json({error:"No data"})
 }
 
-const rows = req.body.data;
-
-let success = 0;
-let updated = 0;
-let errorCount = 0;
+let success=0
+let updated=0
+let errorCount=0
 
 for(const row of rows){
 
-const {studentID,subjectID,marks,staffID} = row;
+const {studentID,subjectID,marks,staffID}=row
 
-if(!studentID || !subject || marks==null){
-errorCount++;
-continue;
+if(!studentID || !subjectID || marks==null){
+errorCount++
+continue
 }
 
 const [existing] = await db.query(
 "SELECT * FROM marks WHERE studentID=? AND subjectID=? AND staffID=?",
-[studentID,subject,staffName]
-);
+[studentID,subjectID,staffID]
+)
 
-if(existing.length > 0){
+if(existing.length>0){
 
 await db.query(
 "UPDATE marks SET marks=? WHERE studentID=? AND subjectID=? AND staffID=?",
-[marks,studentID,subject,staffName]
-);
+[marks,studentID,subjectID,staffID]
+)
 
-updated++;
+updated++
 
 }else{
 
 await db.query(
 "INSERT INTO marks(studentID,subjectID,staffID,marks,status) VALUES(?,?,?,?, 'Pending')",
-[studentID,subjectID,marks,staffName]
-);
+[studentID,subjectID,staffID,marks]
+)
 
-success++;
+success++
 
 }
+
 }
 
 res.json({
 successCount:success,
 updateCount:updated,
 errorCount:errorCount
-});
+})
 
-});
+})
 
 // ======================
 // START SERVER
