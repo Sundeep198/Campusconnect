@@ -173,11 +173,10 @@ app.get('/admin', async (req, res) => {
 });
 
 app.post('/subjects/add', async (req,res)=>{
+
 try{
 
-const {subjectName,staffID} = req.body
-
-let subjectID = "SUB" + Math.floor(100 + Math.random()*900)
+const {subjectID,subjectName,staffID} = req.body
 
 await db.query(
 "INSERT INTO subjects(subjectID,subjectName,staffID) VALUES(?,?,?)",
@@ -187,9 +186,14 @@ await db.query(
 res.json({success:true})
 
 }catch(err){
-res.status(500).json({success:false,error:err.message})
+
+console.log(err)
+
+res.json({success:false})
+
 }
-});
+
+})
 
 app.post('/subjects/update', async (req,res)=>{
 try{
@@ -467,6 +471,7 @@ const [rows] = await db.query(`
 SELECT 
 s.subjectID,
 s.subjectName,
+s.staffID,
 st.staffName
 FROM subjects s
 JOIN staffs st ON s.staffID = st.staffID
@@ -491,7 +496,7 @@ let [students] = await db.query("SELECT studentID,studentName FROM students");
 
 // Get all subjects from marks table
 let [subjectRows] = await db.query("SELECT subjectID FROM subjects");
-let subjects = subjectRows.map(r=>r.subject);
+let subjects = subjectRows.map(r=>r.subjectID);
 
 // Get all marks
 let [marks] = await db.query("SELECT studentID,subjectID,marks FROM marks");
@@ -508,7 +513,7 @@ subjects.forEach(subject=>{
 
 let existing = marks.find(m=>
 m.studentID === student.studentID &&
-m.subject === subject
+m.subjectID === subject
 );
 
 sheet.addRow({
@@ -547,18 +552,26 @@ return res.status(400).send("Staff required");
 
 // Subjects handled by staff
 let [subjectRows] = await db.query(
-"SELECT subjectID FROM subjects WHERE staffName=?",
+`SELECT s.subjectID 
+ FROM subjects s
+ JOIN staffs st ON s.staffID = st.staffID
+ WHERE st.staffName=?`,
 [staffName]
 );
 
-let subjects = subjectRows.map(r=>r.subject);
+let subjects = subjectRows.map(r=>r.subjectID);
 
 // Students
-let [students] = await db.query("SELECT id,name FROM students");
+let [students] = await db.query(
+"SELECT studentID,studentName FROM students"
+);
 
 // Marks of that staff
 let [marks] = await db.query(
-"SELECT studentID,subjectID,marks FROM marks WHERE staffName=?",
+`SELECT m.studentID,m.subjectID,m.marks
+ FROM marks m
+ JOIN staffs s ON m.staffID=s.staffID
+ WHERE s.staffName=?`,
 [staffName]
 );
 
@@ -577,7 +590,7 @@ subjects.forEach(subject=>{
 
 let existing = marks.find(m=>
 m.studentID === student.studentID &&
-m.subject === subject
+m.subjectID === subject
 );
 
 sheet.addRow({
@@ -640,14 +653,14 @@ continue;
 
 const [existing] = await db.query(
 "SELECT * FROM marks WHERE studentID=? AND subjectID=? AND staffID=?",
-[id, subject, staffName]
+[[studentID, subjectID, staffID]]
 );
 
 if(existing.length > 0){
 
 await db.query(
 "UPDATE marks SET marks=? WHERE studentID=? AND subjectID=? AND staffID=?",
-[marks, id, subject, staffName]
+[marks, studentID, subjectID, staffID]
 );
 
 updated++;
@@ -655,7 +668,7 @@ updated++;
 }else{
 
 await db.query(
-"INSERT INTO marks(studentID,subject,marks,staffName,status) VALUES(?,?,?,?, 'Pending')",
+"INSERT INTO marks(studentID,subjectID,staffID,marks,status) VALUES(?,?,?,?, 'Pending')",
 [id, subject, marks, staffName]
 );
 
@@ -691,7 +704,7 @@ let errorCount = 0;
 
 for(const row of rows){
 
-const {studentID,subject,marks,staffName} = row;
+const {studentID,subjectID,marks,staffID} = row;
 
 if(!studentID || !subject || marks==null){
 errorCount++;
@@ -715,8 +728,8 @@ updated++;
 }else{
 
 await db.query(
-"INSERT INTO marks(studentID,subject,marks,staffName,status) VALUES(?,?,?,?, 'Pending')",
-[studentID,subject,marks,staffName]
+"INSERT INTO marks(studentID,subjectID,staffID,marks,status) VALUES(?,?,?,?, 'Pending')",
+[studentID,subjectID,marks,staffName]
 );
 
 success++;
