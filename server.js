@@ -9,7 +9,13 @@ const XLSX = require("xlsx");
 
 const upload = multer({ storage: multer.memoryStorage() }); 
 const app = express();
-app.use(cors());
+const cors = require("cors");
+
+app.use(cors({
+origin:"*",
+methods:["GET","POST","PUT","DELETE"],
+allowedHeaders:["Content-Type"]
+}));
 app.use(express.json());
 
 // ✅ MySQL Connection (Promise Version)
@@ -619,76 +625,6 @@ res.end();
 });
 
 
-app.post("/marks/bulkUpload", upload.single("file"), async (req,res)=>{
-try {
-
-const staffName = req.body.staffName;
-
-if(!req.file){
-return res.status(400).json({error:"No file uploaded"});
-}
-
-const workbook = XLSX.read(req.file.buffer,{type:"buffer"});
-const sheet = workbook.Sheets["MarksEntry"];
-
-if(!sheet){
-return res.status(400).json({error:"Invalid Template"});
-}
-
-let rows = XLSX.utils.sheet_to_json(sheet,{defval:""});
-rows = rows.filter(r=>r["Student Name"] || r["Marks"]);
-
-let success=0,updated=0,errorRows=[];
-
-for(let row of rows){
-
-let id = row["Student ID"];
-let subject = row["Subject"];
-let marks = parseInt(row["Marks"]);
-
-if(!id || !subject || isNaN(marks) || marks < 0 || marks > 100){
-errorRows.push(row);
-continue;
-}
-
-const [existing] = await db.query(
-"SELECT * FROM marks WHERE studentID=? AND subjectID=? AND staffID=?",
-[[studentID, subjectID, staffID]]
-);
-
-if(existing.length > 0){
-
-await db.query(
-"UPDATE marks SET marks=? WHERE studentID=? AND subjectID=? AND staffID=?",
-[marks, studentID, subjectID, staffID]
-);
-
-updated++;
-
-}else{
-
-await db.query(
-"INSERT INTO marks(studentID,subjectID,staffID,marks,status) VALUES(?,?,?,?, 'Pending')",
-[id, subject, marks, staffName]
-);
-
-success++;
-
-}
-}
-
-res.json({
-successCount:success,
-updateCount:updated,
-errorCount:errorRows.length,
-errors:errorRows
-});
-
-}catch(err){
-console.error(err);
-res.status(500).json({error:"Upload failed"});
-}
-});
 
 app.post("/marks/bulkUploadJSON", async (req,res)=>{
 
