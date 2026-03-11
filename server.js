@@ -9,7 +9,6 @@ const XLSX = require("xlsx");
 
 const upload = multer({ storage: multer.memoryStorage() }); 
 const app = express();
-const cors = require("cors");
 
 app.use(cors({
 origin:"*",
