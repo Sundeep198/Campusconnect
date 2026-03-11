@@ -452,7 +452,7 @@ res.status(500).json({success:false,error:err.message})
 }
 })
 
-app.post('/staff/update', async (req,res)=>{
+app.post('/staffs/update', async (req,res)=>{
 try{
 
 const {staffID,staffName,designation,username,password} = req.body
@@ -469,7 +469,7 @@ res.status(500).json({success:false,error:err.message})
 }
 })
 
-app.post('/staff/delete', async (req,res)=>{
+app.post('/staffs/delete', async (req,res)=>{
 try{
 
 const {staffID} = req.body
