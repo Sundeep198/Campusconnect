@@ -521,8 +521,8 @@ let sheet = workbook.addWorksheet("MarksEntry");
 let [students] = await db.query("SELECT studentID,studentName FROM students");
 
 // Get all subjects from marks table
-let [subjectRows] = await db.query("SELECT subjectID FROM subjects");
-let subjects = subjectRows.map(r=>r.subjectID);
+let [subjectRows] = await db.query("SELECT subjectID,subjectName FROM subjects");
+let subjects = subjectRows;
 
 // Get all marks
 let [marks] = await db.query("SELECT studentID,subjectID,marks FROM marks");
@@ -537,15 +537,18 @@ sheet.columns = [
 students.forEach(student=>{
 subjects.forEach(subject=>{
 
+let subjectID = subject.subjectID
+let subjectName = subject.subjectName
+
 let existing = marks.find(m=>
 m.studentID === student.studentID &&
-m.subjectID === subject
+m.subjectID === subjectID
 );
 
 sheet.addRow({
 name: student.studentName,
 id: student.studentID,
-subject: subject,
+subject: subjectName,
 marks: existing ? existing.marks : ""
 });
 
@@ -577,8 +580,8 @@ return res.status(400).send("Staff required");
 }
 
 // Subjects handled by staff
-let [subjectRows] = await db.query(
-`SELECT s.subjectID 
+let [subjects] = await db.query(
+`SELECT s.subjectID,s.subjectName
  FROM subjects s
  JOIN staffs st ON s.staffID = st.staffID
  WHERE st.staffName=?`,
@@ -614,15 +617,18 @@ sheet.columns = [
 students.forEach(student=>{
 subjects.forEach(subject=>{
 
+let subjectID = subject.subjectID
+let subjectName = subject.subjectName
+
 let existing = marks.find(m=>
 m.studentID === student.studentID &&
-m.subjectID === subject
+m.subjectID === subjectID
 );
 
 sheet.addRow({
 name: student.studentName,
 id: student.studentID,
-subject: subject,
+subject: subjectName,
 marks: existing ? existing.marks : ""
 });
 
@@ -661,6 +667,16 @@ let errorCount=0
 for(const row of rows){
 
 const {studentID,subjectID,marks,staffID}=row
+
+// Convert subject name to subjectID if needed
+const [sub] = await db.query(
+"SELECT subjectID FROM subjects WHERE subjectName=?",
+[subjectID]
+)
+
+if(sub.length>0){
+subjectID = sub[0].subjectID
+}
 
 if(!studentID || !subjectID || marks==null){
 errorCount++
