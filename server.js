@@ -522,15 +522,9 @@ let [students] = await db.query("SELECT studentID,studentName FROM students");
 
 // Get all subjects from marks table
 // Subjects handled by staff
-let [subjectRows] = await db.query(
-`SELECT s.subjectID,s.subjectName
- FROM subjects s
- JOIN staffs st ON s.staffID = st.staffID
- WHERE st.staffName=?`,
-[staffName]
+let [subjects] = await db.query(
+"SELECT subjectID,subjectName FROM subjects"
 );
-
-let subjects = subjectRows;
 
 // Get all marks
 let [marks] = await db.query("SELECT studentID,subjectID,marks FROM marks");
@@ -595,8 +589,6 @@ let [subjects] = await db.query(
  WHERE st.staffName=?`,
 [staffName]
 );
-
-let subjects = subjectRows.map(r=>r.subjectID);
 
 // Students
 let [students] = await db.query(
