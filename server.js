@@ -521,7 +521,15 @@ let sheet = workbook.addWorksheet("MarksEntry");
 let [students] = await db.query("SELECT studentID,studentName FROM students");
 
 // Get all subjects from marks table
-let [subjectRows] = await db.query("SELECT subjectID,subjectName FROM subjects");
+// Subjects handled by staff
+let [subjectRows] = await db.query(
+`SELECT s.subjectID,s.subjectName
+ FROM subjects s
+ JOIN staffs st ON s.staffID = st.staffID
+ WHERE st.staffName=?`,
+[staffName]
+);
+
 let subjects = subjectRows;
 
 // Get all marks
